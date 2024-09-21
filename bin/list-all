@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib/json.sh"
+source "$(dirname "$0")/lib/service.sh"
+source "$(dirname "$0")/lib/cache.sh"
+
+RELEASES_LIST_URL="https://api.github.com/repos/zigtools/zls/tags"
+
+## run
+
+# 0. try to hit cache
+if read_cache "list_all" all_versions; then
+	echo -n "${all_versions[*]}"
+	exit 0
+fi
+
+# 1. init json parser
+if command -v wget >/dev/null 2>&1; then
+	json_init "$(wget --quiet --output-document=- $RELEASES_LIST_URL 2>/dev/null)"
+else
+	json_init "$(curl --silent --show-error --fail -X GET $RELEASES_LIST_URL 2>/dev/null)"
+fi
+
+# 2. parse json
+declare -a all_versions
+while json_next_key_value key value; do
+	if [ "$key" = "name" ] && is_min_version "$value"; then
+		all_versions+=("$value")
+	fi
+done
+
+# 3. write cache
+write_cache "list_all" "${all_versions[*]}"
+
+echo -n "${all_versions[*]}"

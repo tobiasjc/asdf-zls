@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+
+help_links=("Repository: https://github.com/zigtools/zls")
+
+echo "${help_links[*]}"

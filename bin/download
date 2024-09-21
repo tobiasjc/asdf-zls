@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib/files.sh"
+source "$(dirname "$0")/lib/system.sh"
+
+## run
+
+platform="$(system_platform)"
+arch="$(system_arch)"
+
+# 0. if version is "latest", resolve to the last version (first on the list)
+if [ "$ASDF_INSTALL_VERSION" = "latest" ]; then
+	DOWNLOAD_OLDIFS="$IFS"
+	IFS=' '
+	read -r -a all_versions <<<"$(source "$(dirname "$0")/list-all")"
+	IFS="$DOWNLOAD_OLDIFS"
+	ASDF_INSTALL_VERSION="${all_versions[0]}"
+fi
+
+# 1. download the file if it doesn't exist
+mkdir -p "$ASDF_DOWNLOAD_PATH" &>/dev/null
+output_filename="$(output_filename "$ASDF_INSTALL_VERSION" "$platform" "$arch")"
+release_file="$ASDF_DOWNLOAD_PATH/$output_filename"
+rm -rf "$release_file" &>/dev/null
+
+input_filename="$(input_filename "$platform" "$arch")"
+download_link="https://github.com/zigtools/zls/releases/download/${ASDF_INSTALL_VERSION}/$input_filename"
+if command -v wget >/dev/null; then
+	wget --quiet --output-document="$release_file" "$download_link" 2>/dev/null
+else
+	curl --silent --show-error --location --fail --output "$release_file" --continue-at - "$download_link" 2>/dev/null
+fi
+
+# 2. chose the extraction method based on the platform
+executable_filename="$(executable_filename "$platform")"
+case "$platform" in
+"windows")
+	unzip "$release_file" -d "$ASDF_DOWNLOAD_PATH" "$executable_filename"
+	;;
+"macos" | "linux" | "wasi")
+	tar --extract --directory="$ASDF_DOWNLOAD_PATH" --file="$release_file" "$executable_filename"
+	;;
+*)
+	echo "Platform '$platform' is not yet supported!" >&2
+	exit 1
+	;;
+esac
+
+# 3. clean up
+rm -rf "$release_file" &>/dev/null

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib/files.sh"
+source "$(dirname "$0")/lib/system.sh"
+
+platform="$(system_platform)"
+
+## run
+
+# install the file, according to the documentation: https://asdf-vm.com/plugins/create.html#bin-install
+# 0. execute instalation
+bin_dir="${ASDF_INSTALL_PATH}/bin"
+mkdir -p "$bin_dir"
+mv "$ASDF_DOWNLOAD_PATH"/* "$bin_dir"
+
+# 1. procedural checks
+executable_filename="$(executable_filename "$platform")"
+executable_path="${bin_dir}/${executable_filename}"
+
+# 1.1. check if instalation was successful
+if [ ! -f "$executable_path" ]; then
+	echo "Expected $executable_path to be present."
+	exit 1
+fi
+# 1.2. check if the executable is valid
+if [ ! -x "$executable_path" ]; then
+	echo "Expected $executable_path to be executable."
+	exit 2
+fi

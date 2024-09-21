@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+help_deps=()
+
+echo "${help_deps[*]}"

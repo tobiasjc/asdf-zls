@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+help_overview="
+Zig Language Server!
+Supporting Zig developers with features like autocomplete, goto definition and much more!
+"
+
+echo "${help_overview}"

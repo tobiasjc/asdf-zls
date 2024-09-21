@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib/json.sh"
+source "$(dirname "$0")/lib/service.sh"
+source "$(dirname "$0")/lib/cache.sh"
+
+RELEASES_LIST_URL="https://api.github.com/repos/ziglang/zig/tags"
+
+## run
+
+# 0. try to hit cache
+if read_cache "latest_stable" latest_stable; then
+	echo -n "$latest_stable"
+	exit 0
+fi
+
+# 1. retrieve the list of zig versions
+if command -v wget >/dev/null 2>&1; then
+	json_init "$(wget --quiet --output-document=- $RELEASES_LIST_URL 2>/dev/null)"
+else
+	json_init "$(curl --silent --show-error --fail -X GET $RELEASES_LIST_URL 2>/dev/null)"
+fi
+
+# 2. parse json
+declare -a all_zig_versions
+while json_next_key_value key value; do
+	if [ "$key" = "name" ]; then
+		all_zig_versions+=("$value")
+	fi
+done
+
+# 3. retrieve the list of zls versions
+read -r -a all_zls_versions <<<"$(source "$(dirname "$0")/list-all")"
+
+# 4. match the top zls version with the top zig version updating the cache
+for zls_version in "${all_zls_versions[@]}"; do
+	if ! is_min_version "$zls_version"; then
+		continue
+	fi
+
+	for zig_version in "${all_zig_versions[@]}"; do
+		if [ "$zls_version" = "$zig_version" ]; then
+			write_cache "latest_stable" "$zls_version"
+			echo -n "$zls_version"
+			exit 0
+		fi
+	done
+done

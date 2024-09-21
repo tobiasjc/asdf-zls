@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+bin_paths=("bin")
+
+echo -n "${bin_paths[*]}"
